@@ -1,0 +1,38 @@
+{
+  "summary": "Targeted regression check for the reported bug: 'datetime input rolling back on every keystroke in Shared Journal'. The fix in /app/frontend/src/pages/RoomPage.jsx (publishAt → publishAtLocal local-string state, ISO conversion deferred until submit, helper isoToLocalInputValue) is VERIFIED WORKING. Tested across shared_journal and personal surprises room with progressive value injection via the native input value setter + React 'input' event dispatch (the exact mechanism React's controlled inputs respond to). The value is preserved exactly across re-renders at every intermediate step ('2027-01-01T00:00' → '2027-01-15T00:00' → '2027-01-15T10:00' → '2027-01-15T10:30'), the displayed input shows the correct LOCAL representation ('01/15/2027, 10:30 AM'), and on Save the backend stores the correct UTC ISO ('2027-01-15T10:30:00.000Z') with status='scheduled'. Round-trip edit re-populates the picker with the same local-time string. Discovered one minor backend bug while testing the 'clear' path: status correctly flips to 'published' but publish_at is NOT actually cleared in DB.",
+  "backend_issues": {
+    "critical": [],
+    "minor": [
+      {"endpoint": "PUT /api/rooms/{room_key}/entries/{id}", "issue": "Cannot clear publish_at: routes_entries.py update_entry uses `if v is not None: update[field] = v` which means publish_at=null in the payload is silently ignored. The status correctly flips to 'published' (so it doesn't visibly affect the UI today), but the DB row keeps the stale publish_at ISO from before the clear. Suggested fix: use Pydantic v2 model_fields_set / model_dump(exclude_unset=True) to distinguish 'omitted' from 'explicit null', or special-case publish_at."}
+    ]
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_butterfly_backend.py",
+    "/app/backend/tests/test_buddy_lookup_bug.py"
+  ],
+  "action_items": [
+    "(Optional) Backend: make publish_at clearable on PUT — currently a null in payload is dropped by the `if v is not None` filter so the row's publish_at stays stale after the user hits 'clear'. Today's UI side-effect (status flips to 'published') masks this, but the data is dirty and may surface later (e.g., if 'sealed' badge logic relies on publish_at presence)."
+  ],
+  "critical_code_review_comments": [
+    "RoomPage.jsx EntryEditor: fix is clean — `publishAtLocal` is a plain local-time string state; the input is controlled by it directly; ISO conversion only happens once in submit() via `new Date(publishAtLocal).toISOString()`. `isoToLocalInputValue` correctly formats stored UTC ISOs back to the input-compatible 'YYYY-MM-DDTHH:MM' string using local-time getters. No more UTC round-trip per keystroke. Verified via React-aware native input event dispatch.",
+    "routes_entries.update_entry uses naive PATCH semantics that cannot distinguish 'field not present' from 'field set to null'. publish_at, media_path, title and body all have the same issue. Consider adopting `payload.model_dump(exclude_unset=True)` (Pydantic v2) so explicit nulls are preserved.",
+    "(Pre-existing, iteration_1) /api/files/{path} does not enforce pair membership.",
+    "(Pre-existing, iteration_1) Handle uppercase silently auto-lowercased instead of rejected."
+  ],
+  "updated_files": [],
+  "success_rate": {
+    "backend": "All POST/scheduled flow tests PASS. 1 minor PATCH-semantics issue on PUT when clearing publish_at.",
+    "frontend": "100% for the targeted datetime regression: T1 progressive stability PASS, T1b value preserved PASS, T2 backend create payload PASS, T3 round-trip edit PASS, T5 surprises room PASS."
+  },
+  "test_credentials": "Tests register fresh TEST_dt_a_<hex>@bf.io / TEST_dt_b_<hex>@bf.io users via API and pair them programmatically each run.",
+  "seed_data_creation": "Per-run TEST_-prefixed user pair + one shared_journal entry + one surprises entry.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "The datetime-local input cannot be tested via .fill(partial_value) because Playwright validates against the input's value attribute format. To test progressive React-state stability, dispatch via:  const setter = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype,'value').set; setter.call(el, v); el.dispatchEvent(new Event('input', {bubbles:true}));  This is what React's controlled input listens for. After each set, blur+refocus to force a render, then read input_value() to verify the state didn't mutate. The reported user bug was reproducible ONLY on the OLD code where each keystroke triggered new Date(local).toISOString().slice(0,16), which in non-UTC browsers shifted the displayed wall-clock time on every keystroke. Current code preserves typed value 1:1.",
+  "rca_of_the_issue": "ORIGINAL BUG RCA: Old EntryEditor used a single `publishAt` state holding a UTC ISO. The datetime-local input got `value={publishAt ? publishAt.slice(0,16) : ''}` (treating UTC ISO as if it were a local-time string — already wrong in any non-UTC timezone) and onChange called `setPublishAt(new Date(e.target.value).toISOString())` which parsed the typed value as LOCAL time and converted to UTC. So a user in IST (+05:30) typing the hour '1' into the hour segment would: input.value='2027-01-15T01:30' → state='2027-01-14T20:00:00.000Z' → input.value=state.slice(0,16)='2027-01-14T20:00' → display jumps to 14th 8 PM mid-keystroke. The user sees their typing 'rewind'. FIX: keep `publishAtLocal` as a plain wall-clock string ('YYYY-MM-DDTHH:MM') matching the datetime-local input's native format, only convert to UTC ISO at submit time. Reconstruct local string from stored UTC ISO via the new isoToLocalInputValue helper using local-time getters. Verified by progressive React-aware input dispatch test across two rooms (shared_journal + surprises). Also verified the backend stores the correct UTC ISO (2027-01-15T10:30 local → 2027-01-15T10:30:00.000Z in this UTC-tz test browser) and that re-opening the entry for edit re-populates the input with the original local-time string."
+}

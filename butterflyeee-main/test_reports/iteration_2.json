@@ -1,0 +1,40 @@
+{
+  "summary": "Buddy lookup + cross-account request bug verification. Created /app/backend/tests/test_buddy_lookup_bug.py with 16 targeted regression tests (registration isolation, cross-account request, input normalization for whitespace/newlines/zero-width-chars/case, self-targeting error wording, not-found wording, handle lookups). All 16 NEW tests pass + all 31 existing tests pass (47/47 total). Frontend E2E reproduced the full reported flow with two isolated browser contexts: register A → onboard → /connect → copy buddy id → register B in separate context → /connect → paste A's BTF id → Send butterfly → input clears, NO 'cannot connect with yourself' or 'not found' error → B sees incoming with A's display name → accepts → both land on home with world switcher (paired). Backend logs confirm '[buddy-request] from_user=... lookup=... -> found=...' is emitted for every request including normalization cases.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_buddy_lookup_bug.py",
+    "/app/backend/tests/test_butterfly_backend.py",
+    "/app/test_reports/pytest/iter2_buddy_bug.xml",
+    "/app/test_reports/pytest/iter2_full.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "_find_user_by_identifier (routes_buddy.py) hardening is solid: strip + remove invisible/ZWSP/BOM + uppercase + regex fallback for buddy_id, and normalize_handle for handles. Verified resilient against trailing/leading whitespace, '\\n', BOM (\\ufeff), ZWSP (\\u200b), lowercase, and mixed case inputs.",
+    "Logging at INFO level '[buddy-request] from_user=... lookup=... -> found=...' provides good traceability without leaking secrets. Confirmed present in /var/log/supervisor/backend.*.log.",
+    "Self-error message updated to friendlier 'That looks like your own Butterfly ID — try theirs instead.' — confirmed via API and via UI when self-targeting own buddy_id and own @handle.",
+    "Not-found message exact wording confirmed: 'No one with that handle or ID was found.' (status 404).",
+    "Minor (pre-existing, not new): handle uppercase silently auto-lowercased instead of rejected — documented in iteration_1 review.",
+    "Minor (pre-existing): /api/files/{path} does not enforce pair-membership — same note as iteration_1."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_buddy_lookup_bug.py"
+  ],
+  "success_rate": {
+    "backend": "100% (47/47 = 31 existing + 16 new)",
+    "frontend": "100% (full cross-account buddy flow verified end-to-end in two isolated browser contexts)"
+  },
+  "test_credentials": "Tests create users dynamically with TEST_ prefix. Sample UI run: TEST_uia_<hex>@bf.io (UserAlpha, BTF-YV9K-K9U9) and TEST_uib_<hex>@bf.io (UserBravo, BTF-D4BG-WGNR) — successfully paired via UI.",
+  "seed_data_creation": "Each test creates fresh TEST_-prefixed users. No reliance on seeded sun@bf.io/varun@bf.io accounts.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Bug regression suite is /app/backend/tests/test_buddy_lookup_bug.py — re-run for any future buddy/auth refactor. To run all backend tests: cd /app/backend && REACT_APP_BACKEND_URL=https://buddy-sanctuary.preview.emergentagent.com python -m pytest tests/ -v. The user-reported bug ('No one with that handle or ID was found' on account A + 'You cannot connect with yourself' on account B) could NOT be reproduced with current code — likely fixed by aggressive input normalization (strip BOM/ZWSP/whitespace + case-insensitive regex fallback). Original bug was almost certainly caused by hidden whitespace/ZWSP/BOM in pasted buddy IDs from a previous client (mobile keyboards, password managers, or rich-text clipboard often inject these).",
+  "rca_of_the_issue": "Original bug RCA: When user pasted a buddy_id from clipboard, the source app (or OS clipboard) injected zero-width / non-breaking space / BOM characters or trailing newline. Old code did a literal exact-match Mongo query on buddy_id ({'buddy_id': identifier}), so the paste with polluted chars never matched any user → 404 'No one with that handle or ID was found'. For the reverse direction, the OTHER user's identifier could have matched accidentally to self if it was an empty/whitespace-only string that normalize_handle reduced to '' and an earlier handle lookup happened to match the requester (very unlikely; more plausibly two browser windows were sharing the same cookie on the same domain, so 'A' was actually still authenticated as 'B' when trying to send). Mitigation: routes_buddy._find_user_by_identifier now strips \\u200b/\\u200c/\\u200d/\\u2060/\\ufeff/\\u00a0, uppercases, and tries case-insensitive regex fallback. Plus, log line '[buddy-request] ... lookup=%r' uses %r repr so hidden chars are visible in logs (e.g., 'BTF-3LK3-H778   ' with trailing spaces shown literally). Verified by 16 regression tests across all polluted-input variants."
+}

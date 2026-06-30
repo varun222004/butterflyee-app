@@ -1,0 +1,107 @@
+{
+  "theme": "Dark",
+  "archetype": "5 (Luxury)",
+  "colors": {
+    "background": {
+      "gradient_start": "#0a1228",
+      "gradient_end": "#1a2647",
+      "texture": "grainy noise and subtle stars"
+    },
+    "text": {
+      "primary": "#f4ede0",
+      "secondary": "#e8c4b8",
+      "muted": "rgba(244, 237, 224, 0.6)"
+    },
+    "surface": {
+      "glass": "rgba(255, 255, 255, 0.05)",
+      "glass_border": "rgba(255, 255, 255, 0.1)",
+      "glass_hover": "rgba(255, 255, 255, 0.08)"
+    },
+    "accent": {
+      "primary": "#e8c4b8",
+      "glow": "rgba(232, 196, 184, 0.3)"
+    }
+  },
+  "typography": {
+    "headings": {
+      "font_family": "Cormorant Garamond, serif",
+      "weights": ["300", "400", "500"],
+      "usage": "H1, H2, Room Titles, Hero text"
+    },
+    "accents": {
+      "font_family": "Caveat, cursive",
+      "weights": ["400"],
+      "usage": "Signatures, 'Hello Sunshine.', 'made quietly, on purpose', small notes"
+    },
+    "body": {
+      "font_family": "Manrope, sans-serif",
+      "weights": ["300", "400"],
+      "usage": "Paragraphs, navigation labels, standard UI text"
+    }
+  },
+  "layout": {
+    "navigation": {
+      "type": "Left icon-rail",
+      "style": "Slim glass pill, rounded-full, fixed left, translucent backdrop blur",
+      "elements": "Infinity symbol at top, room icons below"
+    },
+    "world_switcher": {
+      "type": "Top subtle tabs",
+      "style": "Extremely quiet, minimal text/opacity changes (My World / Buddy's World / Our World)"
+    },
+    "spacing": "Generous, breathable, avoiding any cramped UI. Minimum p-8 in containers."
+  },
+  "visual_enhancers": {
+    "glassmorphism": {
+      "backdrop_blur": "backdrop-blur-xl",
+      "background": "bg-white/5",
+      "border": "border border-white/10",
+      "shadow": "shadow-[0_8px_32px_rgba(0,0,0,0.3)]"
+    },
+    "ambient_lighting": {
+      "moon_orb": "Soft glowing radial gradient orb placed strategically in background (Home, Good Night)",
+      "butterflies": "Floating small dim butterflies drifting in background with subtle css animation"
+    },
+    "textures": {
+      "grain": "SVG noise overlay or CSS grain to reduce digital flatness and give a timeless feel"
+    }
+  },
+  "motion": {
+    "timing": "Slow, gentle, calm timing curves. transition-all duration-700 ease-in-out",
+    "page_transitions": "Fade in, extremely subtle vertical drift (translate-y-4 to 0)",
+    "hover_states": "Soft glow, slight opacity increase, no abrupt scaling"
+  },
+  "components": {
+    "auth_pages": "Centered glass panel, serene background, minimal inputs with bottom-border only or very subtle rounded glass inputs.",
+    "cards": "Glassmorphism panels (Achievements, Letters), translucent blur with subtle border.",
+    "inputs": "Shadcn highly customized. Transparent backgrounds with white/10 borders.",
+    "buddy_system": "Buddy-pair system components should treat every account as equal (no creator/visitor hierarchy)."
+  },
+  "media": {
+    "image_urls": [
+      {
+        "category": "moon_glow",
+        "description": "Soft moon or light orb for background atmospheric lighting",
+        "url": "https://images.unsplash.com/photo-1511553677255-ba939e5537e0?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDk1Nzl8MHwxfHNlYXJjaHwxfHxtb29uJTIwZ2xvd2luZyUyMGRhcmslMjBuaWdodHxlbnwwfHx8fDE3ODI4MjA4NzB8MA&ixlib=rb-4.1.0&q=80&w=1080"
+      },
+      {
+        "category": "texture_grain",
+        "description": "Dark star/grain texture for background overlay",
+        "url": "https://images.unsplash.com/photo-1524334228333-0f6db392f8a1?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w4NjA1OTV8MHwxfHNlYXJjaHwxfHxzdGFycyUyMHRleHR1cmUlMjBkYXJrfGVufDB8fHx8MTc4MjgyMDg3MHww&ixlib=rb-4.1.0&q=80&w=1080"
+      }
+    ]
+  },
+  "instructions_to_main_agent": [
+    "DO NOT REDESIGN VISUAL LANGUAGE. Preserve everything according to this JSON strictly.",
+    "Build standard HTML/Tailwind for custom layouts rather than rigid Shadcn cards. Create raw divs with backdrop-blur-xl and bg-white/5 for cards.",
+    "Apply background gradient: bg-gradient-to-br from-[#0a1228] to-[#1a2647] on the body/main wrapper.",
+    "Include an SVG noise filter or a repeating-linear-gradient with grain to give the background texture.",
+    "The left navigation should be a slim, pill-shaped fixed column on the left (e.g., w-16 or w-20, rounded-full, glassmorphism).",
+    "Use framer-motion for the slow floating butterflies and smooth, calm page transitions.",
+    "Typography: Import Cormorant Garamond for headings, Caveat for accents, and Manrope for body text from Google Fonts.",
+    "Build the Studio Mode ('Writing For Varun' / 'Preview Sunshine\\'s World') seamlessly within the same aesthetic.",
+    "Ensure the World Switcher is quiet and text-based with subtle active states (e.g. opacity 100% vs 50%).",
+    "Every interactive element MUST include data-testid attributes.",
+    "Keep spacing very generous. Use minimum p-8 in containers."
+  ]
+}

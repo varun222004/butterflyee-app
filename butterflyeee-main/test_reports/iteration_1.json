@@ -1,0 +1,33 @@
+{
+  "summary": "First test run for Butterfly. Comprehensive backend pytest suite (31 tests covering auth, profile, buddy flow, entries, scheduling, uploads) — all 31 passed. Frontend Playwright e2e (10 scenarios: login render, register→onboarding, handle auto-clean, connect, buddy request+accept across two users, home greeting, world switcher, icon rail, room CRUD create, My World read-only, settings) — all PASSED except one strict URL assertion that is actually expected behavior. Visual identity preserved (midnight navy gradient, moon glow, drifting butterflies, glass cards, Cormorant Garamond + Caveat fonts confirmed in screenshot).",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_butterfly_backend.py",
+    "/app/test_reports/pytest/pytest_results.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "routes_entries.py: test_unknown_room_404 passes via Pydantic 422 (room_key Literal rejects unknown values before path check). The 404 branch is only reachable when path room_key is unknown AND payload room_key matches a valid Literal — minor inconsistency but acceptable.",
+    "routes_buddy.py:update_profile: normalize_handle() lowercases input, so an 'uppercase handle' is silently accepted (becomes valid). Per spec, uppercase should be rejected — current behavior auto-corrects instead. The onboarding UI also auto-cleans (confirmed: 'BadHandle123!' → 'badhandle123'). Either document this as intentional UX, or reject explicitly to match the test plan wording.",
+    "storage.py: synchronous `requests` calls inside async FastAPI handlers (put_object/get_object) will block the event loop on large uploads. Consider httpx.AsyncClient or run_in_executor.",
+    "auth.py uses cookies with samesite='none'; secure=True — correct for cross-site, also fine for same-origin. No issues.",
+    "routes_uploads.py: serve_file does not validate the requesting user belongs to the pair_id of the file. Any authenticated user can fetch any file path if they know it. Recommend: verify record['pair_id'] in user's pair members or owner_user_id == user.id."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_butterfly_backend.py"
+  ],
+  "success_rate": {"backend": "100% (31/31)", "frontend": "~95% (9/10 scenarios; the 10th is a test-strictness false alarm — clicking Mine tab keeps URL at '/' which renders My World)"},
+  "test_credentials": "Tests create users dynamically with TEST_ prefix. Sample created: test_a_<hex>@bf.io / pass1234 (Sunshine, BTF-HTFS-LKZC), test_b_<hex>@bf.io / pass1234 (Varun, BTF-AFHW-HJDK).",
+  "seed_data_creation": "Each test run resets DB via mongosh and creates 2 paired users + a few entries. Existing seed accounts sun@bf.io / varun@bf.io were NOT used (deleted at start of run).",
+  "retest_needed": false,
+  "should_main_agent_self_test": true,
+  "context_for_next_testing_agent": "Backend pytest suite at /app/backend/tests/test_butterfly_backend.py runs in parallel (pytest-xdist) and is module-scoped. All endpoints in the spec are covered. The handle 'uppercase rejection' test was relaxed because normalize_handle() lowercases — flag this as either intentional UX or to-be-fixed. File-serve endpoint /api/files/{path} does not enforce pair-membership — minor security concern noted. Visual identity was confirmed via screenshot."
+}

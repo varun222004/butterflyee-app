@@ -1,0 +1,37 @@
+{
+  "summary": "Verified (a) glittery butterfly cursor + Settings toggle + persistence, and (b) backend storage portability ('local' vs 'emergent' backend). All 47 pre-existing pytest tests + 6 new storage portability tests = 53/53 PASS. Frontend cursor DOM, follow behaviour, sparkle spawning + fade, Settings toggle, localStorage persistence, and reload-honors-saved-state all verified. No regressions found.",
+  "backend_issues": {
+    "critical": [],
+    "minor": []
+  },
+  "frontend_issues": {
+    "ui_bugs": [],
+    "integration_issues": [],
+    "design_issues": []
+  },
+  "test_report_links": [
+    "/app/backend/tests/test_storage_portability.py",
+    "/app/backend/tests/test_butterfly_backend.py",
+    "/app/backend/tests/test_buddy_lookup_bug.py",
+    "/app/test_reports/pytest/iter4_full.xml"
+  ],
+  "action_items": [],
+  "critical_code_review_comments": [
+    "storage.py backend() auto-selection is clean and correct: explicit STORAGE_BACKEND env wins → falls back to 'emergent' if EMERGENT_LLM_KEY present → else 'local'. Verified via subprocess with controlled env in 3 distinct scenarios.",
+    "storage.py local branch creates parent dirs idempotently and returns proper {path, size}. get_object raises FileNotFoundError on missing path; routes_uploads.serve_file catches it → HTTP 404 (no longer 502). Confirmed via test_files_route_returns_404_for_missing_path.",
+    "ButterflyCursor.jsx: gates correctly on (pointer: coarse) and (prefers-reduced-motion: reduce); listens on both 'storage' and custom 'butterfly-cursor-toggle' events for cross-component sync; localStorage key 'butterfly-cursor' uses 'on'|'off' string. Toggle from SettingsPage correctly fires the custom event and updates state immediately without reload.",
+    "Cursor is mounted globally in App.js (inside BrowserRouter) so it is visible even on /auth/login (pre-auth). The review spec said 'after signing in' but global mounting is a reasonable choice — calling it out for awareness, not as a bug.",
+    "(Pre-existing, carried from iteration_3): routes_entries.update_entry uses `if v is not None: update[field] = v` so explicit null payloads can't clear publish_at. Unchanged in this iteration.",
+    "(Pre-existing, carried from iteration_1): /api/files/{path} does not enforce pair membership; any authenticated user with the path string can fetch. Unchanged in this iteration."
+  ],
+  "updated_files": [
+    "/app/backend/tests/test_storage_portability.py (new)"
+  ],
+  "success_rate": {"backend": "100% (53/53 pytest)", "frontend": "100% (cursor DOM + follow + sparkles + toggle + persistence + reload-restore all PASS)"},
+  "test_credentials": "Tests register fresh TEST_-prefixed users via API each run (no shared seed).",
+  "seed_data_creation": "Per-run TEST_cur_<hex>@bf.io user registered + onboarded via API for the cursor test. No production data touched.",
+  "retest_needed": false,
+  "should_main_agent_self_test": false,
+  "context_for_next_testing_agent": "Backend pytest invocation requires REACT_APP_BACKEND_URL in the environment. Use:  cd /app/backend && REACT_APP_BACKEND_URL=$(grep REACT_APP_BACKEND_URL /app/frontend/.env | cut -d= -f2) python -m pytest tests/ -v . The new test_storage_portability.py uses subprocess + monkeypatch to flip STORAGE_BACKEND without touching /app/backend/.env (per request). For the cursor toggle test, fresh registration must be followed by POST /api/profile/complete-onboarding because /settings is gated behind an onboarded user (a non-onboarded user is auto-redirected to /onboarding). The cursor component is mounted globally inside <BrowserRouter> in App.js so it is present on every route including pre-auth pages.",
+  "rca_of_the_issue": "N/A — feature verification only, no bugs reproduced. Storage portability behaves exactly as documented: STORAGE_BACKEND env wins, else EMERGENT_LLM_KEY presence picks 'emergent', else 'local'. Frontend cursor toggle dispatches a 'butterfly-cursor-toggle' custom event that ButterflyCursor.jsx listens for, and it also reads localStorage on mount, so reload restores the saved state correctly."
+}
